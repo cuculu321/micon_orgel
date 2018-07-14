@@ -79,6 +79,7 @@ void set_led(char add_led){
         show_led[n+1] = show_led[n];
     }
     show_led[0] = add_led;
+    show_led[7] = ~(0xFF & show_led[7]);
 }
 
 void update_led() {
