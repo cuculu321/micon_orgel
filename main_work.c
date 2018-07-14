@@ -1,3 +1,5 @@
+
+
 #include<avr/io.h>
 #include<avr/wdt.h>
 #include <avr/interrupt.h>
@@ -23,12 +25,13 @@ char show_led[8] = {0,0,0,0,0,0,0,0xFF};
 int sound_cnt = 0;
 int cnt = 0;
 int call_sound = 0;
+int sound_speed = 13;
 void update_led();
 void set_led(char add_led);
 
 ISR(TIMER1_COMPA_vect){
     cnt++;
-    if(cnt == 13){
+    if(cnt >= sound_speed){
         cnt = 0;
         sound_cnt++;
         switch(daydream_cafe[sound_cnt+6]){
@@ -69,6 +72,21 @@ ISR(TIMER1_COMPA_vect){
 }
 
 ISR(TIMER0_COMPA_vect){
+    switch((~PINC >>  4) & 0x3){
+
+        case 0:
+            sound_speed = 13;
+            break;
+        case 1:
+            sound_speed = 18;
+            break;
+
+        case 2:
+            sound_speed = 8;
+            break;
+        case 3:
+            break;
+    }
     update_led();
 }
 
@@ -101,7 +119,7 @@ int main()
 	DDRD = 0xFE;
 
 	PORTB = 0xFF;
-	PORTC = 0x00;
+	PORTC = 0x30;
 	PORTD = 0x00;
 
 	TCCR2B = 0x04;
