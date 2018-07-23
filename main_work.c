@@ -4,6 +4,7 @@
 #include<avr/wdt.h>
 #include <avr/interrupt.h>
 
+//譜面データの配列
 static int daydream_cafe[150] = {
 0x00,0x00,0x00,0x00,0x00,0x00,0x00
 0xBD,0xB2,0x9E,0x8D,0x00,0x8D,0x00,0x8D,0x8D,0x9E,0x9E,0x9E,0xB2,0xB2,0xBD,0xB2,0xD4,
@@ -16,10 +17,13 @@ static int daydream_cafe[150] = {
 0xD4,0xBD,0xB2,0xBD,0xEE,0xB2,0xBD,0xEE,0x8D,0x9E,0x9E,0x9E,0x9E,0x9E,0x8D,0x9E,0x9E
 };
 
+/*各音程の時に使用されるLEDの配列
+  ド,レ,ミ,ファ,ファ#,ソ,ラ,シ,無音*/
 static char sound_led[9] = {
-0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00//ド,レ,ミ,ファ,ファ#,ソ,ラ,シ,0
+0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00
 };
 
+/*LEDマトリクスに出力するLEDの配列*/
 char show_led[8] = {0,0,0,0,0,0,0,0xFF};
 
 int sound_cnt = 0;
@@ -34,7 +38,8 @@ ISR(TIMER1_COMPA_vect){
     if(cnt >= sound_speed){
         cnt = 0;
         sound_cnt++;
-        switch(daydream_cafe[sound_cnt+6]){
+        switch(daydream_cafe[sound_cnt+7]){　//最下段に到達するまでの差を考えて+7
+	//音程によってLEDを挿入していく
             case 0xEE:
                 set_led(sound_led[0]);
                 break;
@@ -68,20 +73,22 @@ ISR(TIMER1_COMPA_vect){
             sound_cnt = 0;
         }
     }
-    OCR2A = daydream_cafe[sound_cnt];
+    OCR2A = daydream_cafe[sound_cnt];　//音楽を再生
 }
 
 ISR(TIMER0_COMPA_vect){
     switch((~PINC >>  4) & 0x3){
-
+	//Switchが押されていない間は速度が13
         case 0:
             sound_speed = 13;
             break;
         case 1:
+	//Switch1が押されている間は再生速度が遅くなる
             sound_speed = 18;
             break;
 
         case 2:
+	//Switch1が押されている間は再生速度が早くなる
             sound_speed = 8;
             break;
         case 3:
@@ -93,14 +100,20 @@ ISR(TIMER0_COMPA_vect){
 void set_led(char add_led){
     int n;
 
+    //LEDを1段下に下げる
     for(n = 6; n >= 0; n--){
         show_led[n+1] = show_led[n];
     }
+　　//追加するLED配列を1行目に挿入
     show_led[0] = add_led;
+    
+    //8行目(オルゴールのピンの部分)では値を反転させる
     show_led[7] = ~(0xFF & show_led[7]);
 }
 
 void update_led() {
+    /*ダイナミック点灯を行う。
+      対象:show_led */
     static unsigned char sc = 0xFE;
     static unsigned char scan = 0;
 
@@ -127,6 +140,7 @@ int main()
 	OCR2A = 62;
 	OCR2B = 0;
 
+    //2msのタイマ割り込みを作る
     TCNT1 = 0;
     TCCR1A = 2;
     TCCR1B = 4;
